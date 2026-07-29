@@ -1,4 +1,5 @@
 import glob
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage import io
@@ -12,7 +13,7 @@ image_paths = sorted(glob.glob(r'mri\9606664\images\*.bmp'))
 if not image_paths:
     print("No images found. Please check your file path.")
 else:
-    # 2. Load the VERY FIRST image to set up our initial manual guess
+    # 2. Load first image to set up our initial manual guess
     first_img = io.imread(image_paths[0], as_gray=True)
     
     current_mask = np.zeros(first_img.shape, dtype=np.int8)
@@ -20,6 +21,16 @@ else:
     
     circle = (yy - 220)**2 + (xx - 220)**2 <= 25**2
     current_mask[circle] = 1
+
+    # Extract the patient ID from the first image's folder structure
+    first_path = image_paths[0]
+    path_parts = os.path.normpath(first_path).split(os.sep)
+    patient_id = path_parts[1] # Grabs the folder name immediately after 'mri'
+
+    # Create an output directory inside this specific patient's folder
+    output_dir = os.path.join("mri", patient_id, "output_tracked_masks")
+    os.makedirs(output_dir, exist_ok=True)
+    print(f"Tracking results will be saved to: {output_dir}")
 
     # 4. Loop through every image in the folder
     for index, path in enumerate(image_paths):
@@ -47,7 +58,7 @@ else:
             # SHRINKING PHASE: Start safely outside, then shrink-wrap inward
             current_mask = binary_dilation(current_mask, disk(2))
             current_balloon = -0.85
-        else:
+        else: #expand outward to compensate for changes at end
             current_mask = binary_erosion(current_mask, disk(2))
             current_balloon = 0.75
         
@@ -69,6 +80,13 @@ else:
         plt.imshow(img, cmap='gray')
         plt.contour(current_mask, [0.5], colors='b', linewidths=2)
         plt.title(f"Tracking Bone: Slice {index + 1}")
+
+        original_filename = os.path.basename(path)
+        save_name = original_filename.replace('.bmp', '_tracked.png')
+        save_path = os.path.join(output_dir, save_name)
+        
+        plt.savefig(save_path, bbox_inches='tight', dpi=150)
         plt.pause(0.1) # Pause briefly to update the window
 
+    print("Sequence complete! All images saved.")
     plt.show()
