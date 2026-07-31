@@ -6,8 +6,7 @@ from skimage import io
 from skimage.segmentation import morphological_geodesic_active_contour, inverse_gaussian_gradient
 from skimage.morphology import binary_erosion, disk,binary_dilation
 
-# 1. Grab all the BMP images in your folder and sort them sequentially
-# Using the parent 'mri' directory as requested
+# 1. get all the BMP images in folder
 image_paths = sorted(glob.glob(r'mri\9606664\images\*.bmp'))
 
 if not image_paths:
